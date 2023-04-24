@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "namespace": "io.idahodata.schemas",
+  "name": "NewsItem",
+  "fields": [
+    {
+      "name": "title",
+      "type": "string"
+    },
+    {
+      "name": "description",
+      "type": "string"
+    }
+  ]
+}

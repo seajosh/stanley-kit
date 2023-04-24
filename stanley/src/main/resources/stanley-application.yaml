@@ -1,0 +1,25 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:29092
+
+  cloud:
+    stream:
+      function:
+        definition: news-consumer
+        bindings:
+          news-consumer-in-0: news-consumer-sub
+
+      bindings:
+        news-consumer-sub:
+          destination: news-stories
+          binder: kafka-1
+
+      binders:
+        kafka-1:
+          type: kafka
+          environment:
+            spring.cloud.stream.kafka.binder:
+              brokers: localhost:29092
+
+
+
