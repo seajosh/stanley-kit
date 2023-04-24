@@ -6,3 +6,9 @@ build
 
 # IntelliJ stuff
 .idea
+
+node_modules
+
+.yarn
+*.lock
+
