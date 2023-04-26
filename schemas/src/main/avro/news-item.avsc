@@ -10,6 +10,22 @@
     {
       "name": "description",
       "type": "string"
+    },
+    {
+      "name": "pubDate",
+      "aliases": ["_pubDate"],
+      "type": "string"
+    },
+    {
+      "name": "categories",
+      "type": {
+        "type": "array",
+        "items": "string"
+      }
+    },
+    {
+      "name": "link",
+      "type": "string"
     }
   ]
 }

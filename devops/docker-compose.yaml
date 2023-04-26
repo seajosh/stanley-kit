@@ -13,7 +13,7 @@ services:
 
 
   broker-1:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-server:latest
     hostname: broker-1
     container_name: broker-1
     depends_on:
@@ -62,7 +62,7 @@ services:
       - broker-1
       - schema-registry
     environment:
-      CONTROL_CENTER_MODE: "management"
+#      CONTROL_CENTER_MODE: "management"
       CONTROL_CENTER_ID: "STANLEY-CONTROL-1"
       CONTROL_CENTER_BOOTSTRAP_SERVERS: "broker-1:9092"
       CONTROL_CENTER_ZOOKEEPER_CONNECT: "zookeeper:2181"
