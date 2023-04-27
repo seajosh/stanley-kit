@@ -11,6 +11,9 @@ configurations {
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
+    maven {
+        url = uri("https://packages.confluent.io/maven")
+    }
 }
 
 extra["vCloudStream"] = "4.0.2"
@@ -34,6 +37,8 @@ dependencies {
 
     // Spring Kafka
     implementation("org.springframework.kafka:spring-kafka:${property("vSpringKafka")}")
+
+    implementation("io.confluent:kafka-avro-serializer:6.1.0")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:${property("vLombok")}")

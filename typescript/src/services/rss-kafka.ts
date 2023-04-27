@@ -1,11 +1,10 @@
 import {RssEngine} from 'vcardz';
 import {RxHR} from '@akanass/rx-http-request';
-import {concatMap, finalize, map, mergeMap, switchMap, tap, toArray} from 'rxjs/operators';
-import {forkJoin, from} from "rxjs";
-import {Kafka, Partitioners} from "kafkajs";
+import {finalize, map, mergeMap, switchMap, toArray} from 'rxjs/operators';
+import {forkJoin, from, of, Subject} from "rxjs";
+import {Kafka, logLevel, Partitioners} from "kafkajs";
 import {SchemaRegistry} from "@kafkajs/confluent-schema-registry";
 import {NewsItem} from "../models";
-import {subscribe} from "diagnostics_channel";
 
 export class RssKafka {
     private _fetch$ =
@@ -19,53 +18,63 @@ export class RssKafka {
             const engine = new RssEngine(xml);
             return from(engine.run());
         }),
-        map(item => NewsItem.fromRss(item))
+        map(item => NewsItem.fromRss(item)),
+        toArray()
     );
 
-    private _kafka = new Kafka({brokers: ['localhost:29092']});
+    private _kafka = new Kafka({
+                                   brokers: ['localhost:29092'],
+                                   logLevel: logLevel.NOTHING
+                               });
     private _schemas = new SchemaRegistry({host: 'http://localhost:28081'});
 
-    run() {
-        const producer = this._kafka.producer({ createPartitioner: Partitioners.DefaultPartitioner });
-        console.log('starting up');
+    public done$ = new Subject<boolean>();
 
-        forkJoin([this._schemas.getLatestSchemaId('news-stories-value'),
-                 producer.connect()])
+    run() {
+        const producer = this._kafka.producer({
+                                                  createPartitioner: Partitioners.DefaultPartitioner,
+                                                  retry: {
+                                                      retries: 1,
+                                                      initialRetryTime: 100
+                                                  }
+                                              });
+        const topic = 'news-stories';
+        const topicSchema$ = this._schemas
+                                 .getLatestSchemaId(`${topic}-value`)
+                                 .catch(ex => console.warn(`! ${topic} value schema does not exist`));
+        // this._schemas.getLatestSchemaId(`${topic}-value`),
+        forkJoin([
+                     this._rss$,
+                     topicSchema$,
+                     producer.connect()
+                 ])
             .pipe(
+                mergeMap(([items, schemaId]) =>
+                             from([items[0]]).pipe(
+                                 mergeMap(item =>
+                                              (schemaId) ?
+                                                  this._schemas.encode(schemaId, item) :
+                                                  of(JSON.stringify(item))
+                                 ),
+                                 mergeMap(data =>
+                                              producer.send({
+                                                                topic: topic,
+                                                                messages: [{value: data}]
+                                                            })
+                                 ),
+                             )
+                ),
                 finalize(() => {
-                    console.log('finalize called');
-                    // producer.disconnect();
+                    console.info('** disconnecting from Kafka');
+                    producer.disconnect().then(() => this.done$.next(true));
                 })
             )
-            .subscribe(response => {
-                const [schemaId] = response;
-                this._rss$
-                    .pipe(
-                        mergeMap(item => from(this._schemas.encode(schemaId, item)) ),
-                        mergeMap(data => producer.send({
-                                                           topic: 'news-stories',
-                                                           messages: [{value: data}]
-                                                       }) ),
-                    )
-                    .subscribe(records => console.log(records));
-            });
+            .subscribe({
+                           // next: (resp) => console.info(`** ${resp}`),
+                           error: (err) => console.error(`!! ${err}`)
+                       });
+
     }
 }
 
-const rssKafka = new RssKafka();
-rssKafka.run();
-
-
-
-
-
-
-
-// console.log(schemaId);
-//
-// await producer.connect();
-//
-//
-//
-// process.once('SIGINT', producer.disconnect);
 

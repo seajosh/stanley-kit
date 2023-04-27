@@ -6,7 +6,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
-    "rss-kafka": "node --experimental-specifier-resolution=node --loader ts-node/esm ./src/services/rss-kafka.ts"
+    "rss-kafka": "node --experimental-specifier-resolution=node --loader ts-node/esm ./src/fetch-rss.ts"
   },
   "dependencies": {
     "@akanass/rx-http-request": "^3.3.0",
