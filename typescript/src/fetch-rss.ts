@@ -7,4 +7,5 @@ rssKafka.done$.subscribe(val => {
         process.exit();
     }
 })
-rssKafka.run();
+rssKafka.run('https://rss.nytimes.com/services/xml/rss/nyt/US.xml', 'news-stories');
+// rssKafka.run('https://www.cbssports.com/rss/headlines/', 'news-stories');

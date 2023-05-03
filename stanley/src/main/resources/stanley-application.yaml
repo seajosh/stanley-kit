@@ -24,8 +24,10 @@ spring:
               brokers: localhost:29092
               consumer-properties:
                 schema.registry.url: http://localhost:28081
-                key.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
-                value.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+                key.deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+                spring.deserializer.key.delegate.class: io.confluent.kafka.serializers.KafkaAvroDeserializer
+                value.deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+                spring.deserializer.value.delegate.class: io.confluent.kafka.serializers.KafkaAvroDeserializer
 
 
 

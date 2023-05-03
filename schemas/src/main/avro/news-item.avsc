@@ -18,14 +18,17 @@
     },
     {
       "name": "categories",
-      "type": {
-        "type": "array",
-        "items": "string"
-      }
+      "type": [
+        "null",
+        {
+          "type": "array",
+          "items": "string"
+        }
+      ]
     },
     {
       "name": "link",
-      "type": "string"
+      "type": ["null","string"]
     }
   ]
 }

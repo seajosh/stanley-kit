@@ -1,6 +1,21 @@
 version: '3'
 
 services:
+  # MongoDB
+  mongodb:
+    image: mongodb/mongodb-community-server:latest
+    hostname: mongodb
+    container_name: mongodb
+    ports:
+      - "37017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=edrm
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+
+  #
+  # Kafka infrastructure
+  #
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     hostname: zookeeper

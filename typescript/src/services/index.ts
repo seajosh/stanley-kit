@@ -1,1 +1,2 @@
-export * from './rss-kafka';
+export * from './rss/rss-kafka';
+

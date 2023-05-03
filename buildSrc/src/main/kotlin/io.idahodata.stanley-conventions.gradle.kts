@@ -16,12 +16,14 @@ repositories {
     }
 }
 
+extra["vAvroSerializer"] = "7.3.3"
 extra["vCloudStream"] = "4.0.2"
 extra["vSpringCloud"] = "2022.0.2"
 extra["vSpringBoot"] = "3.0.6"
 extra["vSpringDependencyGradlePlugin"] = "1.1.0"
 extra["vSpringKafka"] = "3.0.6"
 extra["vLombok"] = "1.18.26"
+
 
 dependencies {
     // schema module - geneated Java classes from Avro schema files
@@ -38,7 +40,8 @@ dependencies {
     // Spring Kafka
     implementation("org.springframework.kafka:spring-kafka:${property("vSpringKafka")}")
 
-    implementation("io.confluent:kafka-avro-serializer:6.1.0")
+    // Confluent Avro serializer
+    implementation("io.confluent:kafka-avro-serializer:${property("vAvroSerializer")}")
 
     // Lombok
     compileOnly("org.projectlombok:lombok:${property("vLombok")}")
