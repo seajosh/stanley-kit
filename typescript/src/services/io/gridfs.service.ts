@@ -53,7 +53,10 @@ export class GridFsService {
                         sub$.error(err);
                     });
                     gridfs.on('finish', () => {
-                        sub$.next(gridfs.filename);
+
+                        sub$.next(() => {
+                            gridfs.filename
+                        });
                         sub$.complete();
                     });
                 });

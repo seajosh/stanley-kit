@@ -1,7 +1,10 @@
+import "reflect-metadata";
 import {FileLoader} from './services/io';
+import {container} from 'tsyringe';
 
 const loader = new FileLoader('/Users/joshw/dev/stanley-kit/data/EDRM Public Download',
                               '/Users/joshw/dev/stanley-kit/data/');
+// const loader = container.resolve(FileLoader);
 loader.run();
 
 

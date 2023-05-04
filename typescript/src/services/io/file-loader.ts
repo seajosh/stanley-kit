@@ -1,18 +1,19 @@
-import {expand, filter, from, Observable, of, Subject, tap} from 'rxjs';
+import {filter, Observable, tap} from 'rxjs';
 import * as fs from 'fs';
 import {catchError, finalize, map, mergeMap, take} from 'rxjs/operators';
 import path from 'path';
 import {GridFsService} from './gridfs.service';
+import {autoInjectable} from 'tsyringe';
+import {KafkaService} from '../kafka';
+import {EdrmFile} from '../../models';
+import {Builder} from 'builder-pattern';
+import {contentType} from 'mime-types';
 
-
+@autoInjectable()
 export class FileLoader {
-    private _root = '';
-    private _mask = '';
-
-    constructor(path: string, mask = '') {
-        this._root = path;
-        this._mask = mask;
-    }
+    constructor(protected _root: string,
+                protected _mask = '',
+                protected _kafka?: KafkaService) {}
 
 
     get files$(): Observable<string> {
@@ -23,7 +24,7 @@ export class FileLoader {
                    );
     }
 
-    x
+
     get load$(): Observable<string> {
         const gridFs = new GridFsService();
 
@@ -45,26 +46,36 @@ export class FileLoader {
 
 
     public run() {
-        const handler = {
-            next: (tuple: any) => {
-                const [file, ext] = tuple;
-                console.log(`upload complete: ${file}`);
-            },
-            error: (err: any) => {
-                console.error(`!! ${err.message}`);
-            },
-            complete: () => {
-                // console.log('handler complete');
-            }
-        };
 
-        this.load$
-            .pipe(
-                map(file => [file, path.extname(file)] as const),
-                tap(([file, ext]) => console.log(`found ${ext} file`))
-            )
-            .subscribe(handler);
+        // const handler = {
+        //     next: (tuple: any) => {
+        //         const [file, ext] = tuple;
+        //         console.log(`upload complete: ${file}`);
+        //     },
+        //     error: (err: any) => {
+        //         console.error(`!! ${err.message}`);
+        //     },
+        //     complete: () => {
+        //         // console.log('handler complete');
+        //     }
+        // };
 
+        const transform$ =
+                      this.load$
+                          .pipe(
+                              tap(filePath =>
+                                      console.log(`upload complete: ${filePath}`)
+                              ),
+                              map(filePath => {
+                                  const mimeType = contentType(filePath) || 'application/unknown';
+                                  return Builder<EdrmFile>().path(filePath)
+                                                            .name(path.basename(filePath))
+                                                            .build();
+                              })
+                          );
+
+        this._kafka!
+            .publish<EdrmFile>('edrm-files', transform$);
     }
 
 

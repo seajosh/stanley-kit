@@ -5,11 +5,23 @@
   "fields": [
     {
       "name": "name",
-      "type": "string"
+      "type": "string",
+      "default": ""
     },
     {
       "name": "path",
-      "type": "string"
+      "type": "string",
+      "default": ""
+    },
+    {
+      "name": "contentType",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "name": "size",
+      "type": "long",
+      "default": 0
     }
   ]
 
