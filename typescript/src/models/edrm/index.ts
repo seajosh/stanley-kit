@@ -1,1 +1,1 @@
-export * from './edrm-file.model';
+export * from './file.model';

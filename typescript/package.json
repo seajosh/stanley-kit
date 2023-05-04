@@ -7,7 +7,8 @@
   "main": "./src/index.ts",
   "scripts": {
     "rss-kafka": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/fetch-rss.ts",
-    "edrm-load": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm-load-files.ts"
+    "edrm-load": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/load-files.ts",
+    "edrm-csv": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-router.ts"
   },
   "dependencies": {
     "@akanass/rx-http-request": "^3.3.0",

@@ -5,9 +5,9 @@ import path from 'path';
 import {GridFsService} from './gridfs.service';
 import {autoInjectable} from 'tsyringe';
 import {KafkaService} from '../kafka';
-import {EdrmFile} from '../../models';
-import {Builder} from 'builder-pattern';
+import {File} from '../../models';
 import {contentType} from 'mime-types';
+
 
 @autoInjectable()
 export class FileLoader {
@@ -25,12 +25,11 @@ export class FileLoader {
     }
 
 
-    get load$(): Observable<string> {
+    get load$(): Observable<File> {
         const gridFs = new GridFsService();
 
         return this.files$
                    .pipe(
-                       take(2),
                        mergeMap(file => gridFs.uploadFile$(file, this._mask),
                                 2),
                        catchError(err => {
@@ -46,36 +45,20 @@ export class FileLoader {
 
 
     public run() {
-
-        // const handler = {
-        //     next: (tuple: any) => {
-        //         const [file, ext] = tuple;
-        //         console.log(`upload complete: ${file}`);
-        //     },
-        //     error: (err: any) => {
-        //         console.error(`!! ${err.message}`);
-        //     },
-        //     complete: () => {
-        //         // console.log('handler complete');
-        //     }
-        // };
-
         const transform$ =
                       this.load$
                           .pipe(
-                              tap(filePath =>
-                                      console.log(`upload complete: ${filePath}`)
+                              tap(file =>
+                                      console.log(`upload complete: ${file.path}`)
                               ),
-                              map(filePath => {
-                                  const mimeType = contentType(filePath) || 'application/unknown';
-                                  return Builder<EdrmFile>().path(filePath)
-                                                            .name(path.basename(filePath))
-                                                            .build();
+                              map(file => {
+                                  file.contentType = contentType(file.name) || 'application/unknown';
+                                  return file;
                               })
                           );
 
         this._kafka!
-            .publish<EdrmFile>('edrm-files', transform$);
+            .publish<File>('edrm-files', transform$);
     }
 
 

@@ -2,6 +2,9 @@ import {GridFSBucket, GridFSBucketWriteStream, MongoClient, ServerApiVersion} fr
 import {from, mergeMap, Observable, of, switchMap} from 'rxjs';
 import {catchError, finalize, map} from 'rxjs/operators';
 import * as fs from 'fs';
+import {File} from '../../models/edrm/file.model';
+import {Builder} from 'builder-pattern';
+import path from 'path';
 
 export class GridFsService {
     private _client =
@@ -28,11 +31,11 @@ export class GridFsService {
         return from(this._client.close());
     }
 
-    uploadFile$(filePath: string, mask = '') {
+    uploadFile$(filePath: string, mask = ''): Observable<File> {
         const gridFsPath = mask ? filePath.replace(mask, '$/')
                                 : filePath;
 
-        return new Observable<string>(sub$ => {
+        return new Observable<File>(sub$ => {
             this.connect$
                 .subscribe(client => {
                     if (!client) {
@@ -53,10 +56,13 @@ export class GridFsService {
                         sub$.error(err);
                     });
                     gridfs.on('finish', () => {
+                        const file = Builder<File>().name(path.basename(gridfs.filename))
+                                                    .origin(filePath)
+                                                    .path(gridfs.filename)
+                                                    .size(gridfs.length)
+                                                    .build();
 
-                        sub$.next(() => {
-                            gridfs.filename
-                        });
+                        sub$.next(file);
                         sub$.complete();
                     });
                 });
