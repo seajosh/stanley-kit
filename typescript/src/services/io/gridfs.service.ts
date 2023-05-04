@@ -28,7 +28,10 @@ export class GridFsService {
         return from(this._client.close());
     }
 
-    uploadFile$(filePath: string) {// : Observable<GridFSBucketWriteStream> {
+    uploadFile$(filePath: string, mask = '') {
+        const gridFsPath = mask ? filePath.replace(mask, '$/')
+                                : filePath;
+
         return new Observable<string>(sub$ => {
             this.connect$
                 .subscribe(client => {
@@ -42,7 +45,7 @@ export class GridFsService {
                         sub$.error(err);
                     });
 
-                    const gridfs = file.pipe(bucket.openUploadStream(filePath,
+                    const gridfs = file.pipe(bucket.openUploadStream(gridFsPath,
                                                                      {
                                                                          chunkSizeBytes: 1 << 20,
                                                                      }));

@@ -1,33 +1,37 @@
-import {FileLoader, GridFsService} from './services/io';
-import {catchError, concatMap, count, finalize, map, mergeMap, reduce, take} from 'rxjs/operators';
-import {GridFSBucketWriteStream} from 'mongodb';
-import {bindCallback, Observable, of, tap} from 'rxjs';
+import {FileLoader} from './services/io';
 
-
-const compactFormatter = Intl.NumberFormat('en', {notation: 'compact'});
-const loader = new FileLoader('/Users/joshw/dev/stanley-kit/data/EDRM Public Download');
-const gridFs = new GridFsService();
+const loader = new FileLoader('/Users/joshw/dev/stanley-kit/data/EDRM Public Download',
+                              '/Users/joshw/dev/stanley-kit/data/');
+loader.run();
 
 
 
-loader.files$
-      .pipe(
-          // take(62),
-          mergeMap(file => gridFs.uploadFile$(file), 2),
-          catchError(ex => {
-              console.error(`!! ${ex}`);
-              return of('');
-          }),
-          finalize(() => {
-              console.info('upload done');
-              gridFs.disconnect$.subscribe();
-          })
-      )
-      .subscribe(filePath => {
-          console.log(filePath);
-      });
 
-loader.list();
+
+// const compactFormatter = Intl.NumberFormat('en', {notation: 'compact'});
+
+// const gridFs = new GridFsService();
+
+
+
+// loader.files$
+//       .pipe(
+//           // take(62),
+//           mergeMap(file => gridFs.uploadFile$(file), 2),
+//           catchError(ex => {
+//               console.error(`!! ${ex}`);
+//               return of('');
+//           }),
+//           finalize(() => {
+//               console.info('upload done');
+//               gridFs.disconnect$.subscribe();
+//           })
+//       )
+//       .subscribe(filePath => {
+//           console.log(filePath);
+//       });
+//
+// loader.list();
 
 
 // const downloadFile = '/Users/joshw/dev/stanley-kit/data/EDRM Public Download/Data from public websites/MinTemp_1970.zip';

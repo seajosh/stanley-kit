@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "namespace": "io.idahodata.schemas.edrm",
+  "name": "File",
+  "fields": [
+    {
+      "name": "name",
+      "type": "string"
+    },
+    {
+      "name": "path",
+      "type": "string"
+    }
+  ]
+
+}

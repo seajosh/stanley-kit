@@ -1,92 +1,91 @@
-import {filter, from, Observable, Subject, tap} from 'rxjs';
+import {expand, filter, from, Observable, of, Subject, tap} from 'rxjs';
 import * as fs from 'fs';
-import {map, mergeMap} from 'rxjs/operators';
+import {catchError, finalize, map, mergeMap, take} from 'rxjs/operators';
 import path from 'path';
+import {GridFsService} from './gridfs.service';
 
 
 export class FileLoader {
     private _root = '';
-    private _nodes$ = new Subject<string>();
+    private _mask = '';
 
-    constructor(path: string) {
+    constructor(path: string, mask = '') {
         this._root = path;
+        this._mask = mask;
     }
 
 
     get files$(): Observable<string> {
-        return this.traverse$()
+        return this.traverse$
                    .pipe(
                        filter(([folder, entry]) => entry.isFile()),
                        map(([folder, entry]) => path.join(folder, entry.name))
                    );
     }
 
-    get stats$(): Observable<readonly [string, fs.Stats]> {
-        return this.traverse$()
+    x
+    get load$(): Observable<string> {
+        const gridFs = new GridFsService();
+
+        return this.files$
                    .pipe(
-                       map(([folder, entry]) =>
-                           [path.join(folder, entry.name), entry] as const
-                       ),
-                       mergeMap(([file, entry]) =>
-                           this.fileStats$(file)
-                               .pipe(
-                                   map(stat => [file, stat] as const)
-                               )
-                       )
+                       take(2),
+                       mergeMap(file => gridFs.uploadFile$(file, this._mask),
+                                2),
+                       catchError(err => {
+                           console.error(`!! ${err.message}`);
+                           throw err;
+                       }),
+                       finalize(() => {
+                           console.debug('load$ finalize');
+                           gridFs.disconnect$.subscribe();
+                       })
                    );
     }
 
 
-    list() {
-        this._nodes$.next(this._root);
-    }
+    public run() {
+        const handler = {
+            next: (tuple: any) => {
+                const [file, ext] = tuple;
+                console.log(`upload complete: ${file}`);
+            },
+            error: (err: any) => {
+                console.error(`!! ${err.message}`);
+            },
+            complete: () => {
+                // console.log('handler complete');
+            }
+        };
 
-    stats() {
-        this._nodes$.next(this._root);
-    }
+        this.load$
+            .pipe(
+                map(file => [file, path.extname(file)] as const),
+                tap(([file, ext]) => console.log(`found ${ext} file`))
+            )
+            .subscribe(handler);
 
-
-    protected traverse$(): Observable<readonly [string, fs.Dirent]> {
-        return this._nodes$.pipe(
-            mergeMap(this.openDir$),
-            mergeMap(dir =>
-                         from(dir).pipe(
-                             map(entry => [dir.path, entry] as const)
-                         )
-            ),
-            tap(([folder, entry]) => {
-                if (entry.isDirectory()) {
-                    this._nodes$.next(path.join(folder, entry.name));
-                }
-            })
-        );
-    }
-
-
-    protected openDir$(path: string): Observable<fs.Dir> {
-        return new Observable((sub$ => {
-            fs.opendir(path,
-                       (err, dir) => {
-                           if (err) {
-                               return sub$.error(err);
-                           }
-                           sub$.next(dir);
-                           sub$.complete();
-                       });
-        }));
     }
 
 
-    protected fileStats$(path: string): Observable<fs.Stats> {
-        return new Observable((sub$ => {
-            fs.stat(path,
-                    (err, stats) => {
-                        if (err) {
-                            return sub$.error(err);
-                        }
-                        sub$.next(stats);
-                        sub$.complete();
-                    });
-        }));
+    protected get traverse$(): Observable<readonly [string, fs.Dirent]> {
+
+        return new Observable<readonly [string, fs.Dirent]>(sub$ => {
+            const queue = [this._root];
+            while (queue.length > 0) {
+                const folder = queue.shift()!;
+                const children = fs.readdirSync(folder, {withFileTypes: true});
+                // process directories
+                children.filter(entry => entry.isDirectory())
+                        .forEach(entry => queue.push(path.join(folder, entry.name)));
+
+                // process files
+                children.filter(entry => entry.isFile())
+                        .forEach(entry => sub$.next([folder, entry] as const))
+            }
+            sub$.complete();
+        });
+
     }
+
 }
