@@ -1,7 +1,7 @@
 import {singleton} from 'tsyringe';
 import {Consumer, EachMessageHandler, EachMessagePayload, Kafka, logLevel, Partitioners, Producer} from 'kafkajs';
 import {SchemaRegistry} from '@kafkajs/confluent-schema-registry';
-import {firstValueFrom, forkJoin, from, Observable, of, Subject, tap} from 'rxjs';
+import {firstValueFrom, forkJoin, from, Observable, of, Subject, Subscription, tap} from 'rxjs';
 import {finalize, mergeMap} from 'rxjs/operators';
 
 @singleton()
@@ -46,35 +46,37 @@ export class KafkaService {
     }
 
 
-    publish<T>(topic: string, items$: Observable<T>) {
+    publish<T>(topic: string, items$: Observable<T>): Producer {
         const prod = this.producer();
 
-        return forkJoin([
+        forkJoin([
                      this.topicSchema$(topic),
                      prod.connect()
-                ])
-                .subscribe( ([schemaId]) => {
+                 ])
+                .subscribe(([schemaId]) => {
                     items$.pipe(
-                              mergeMap(item =>
-                                      schemaId ? this._schemas.encode(schemaId, item)
-                                               : of(JSON.stringify(item))
-                              ),
+                                  mergeMap(item =>
+                                                   schemaId ? this._schemas.encode(schemaId, item)
+                                                            :of(JSON.stringify(item))
+                                  ),
 
-                              mergeMap(datum =>
-                                      prod.send({
-                                          topic: topic,
-                                          messages: [{value: datum}]
-                                      })
-                              ),
+                                  mergeMap(datum =>
+                                                   prod.send({
+                                                                 topic: topic,
+                                                                 messages: [{value: datum}]
+                                                             })
+                                  ),
 
-                              finalize(() => {
-                                  prod.disconnect().then();
-                              })
+                                  finalize(() => {
+                                      prod.disconnect().then();
+                                  })
                           )
                           .subscribe({
-                              error: err => console.error(`kafka publish => ${err}`)
-                          });
+                                         error: err => console.error(`kafka publish => ${err}`)
+                                     });
                 });
+
+        return prod;
     }
 
 

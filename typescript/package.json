@@ -9,7 +9,9 @@
     "rss-kafka": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/fetch-rss.ts",
     "edrm-load": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/load-files.ts",
     "edrm-csv": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-router.ts",
-    "edrm-csv-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-xform.ts"
+    "edrm-csv-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-xform.ts",
+    "edrm-zip-router": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/zip-router.ts",
+    "edrm-zip-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/zip-xform.ts"
   },
   "dependencies": {
     "@akanass/rx-http-request": "^3.3.0",
