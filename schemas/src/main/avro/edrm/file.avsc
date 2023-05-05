@@ -27,6 +27,11 @@
       "name": "size",
       "type": "long",
       "default": 0
+    },
+    {
+      "name": "encoding",
+      "type": "string",
+      "default": ""
     }
   ]
 

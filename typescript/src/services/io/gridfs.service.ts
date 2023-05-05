@@ -1,30 +1,36 @@
-import {GridFSBucket, GridFSBucketWriteStream, MongoClient, ServerApiVersion} from 'mongodb';
-import {from, mergeMap, Observable, of, switchMap} from 'rxjs';
+import {GridFSBucket, GridFSBucketReadStream, GridFSBucketWriteStream, MongoClient, ServerApiVersion} from 'mongodb';
+import {from, iif, mergeMap, Observable, of, retry, switchMap, tap} from 'rxjs';
 import {catchError, finalize, map} from 'rxjs/operators';
 import * as fs from 'fs';
 import {File} from '../../models/edrm/file.model';
 import {Builder} from 'builder-pattern';
 import path from 'path';
+import ReadWriteStream = NodeJS.ReadWriteStream;
+import iconv from 'iconv-lite';
+// const {decodeStream, encodeStream} = iconv;
 
 export class GridFsService {
     private _client =
         new MongoClient('mongodb://admin:password@localhost:37017',
                         {
+                            appName: 'GridFs node service',
                             serverSelectionTimeoutMS: 1000,
                             serverApi: {
                                 version: ServerApiVersion.v1,
                                 strict: true,
                                 deprecationErrors: true,
-                            }
+                            },
+                            maxPoolSize: 10
                         });
 
 
     get connect$(): Observable<MongoClient|undefined> {
-        return from(this._client.connect()).pipe(
-            catchError(err => {
-                console.error(`!! ${err}`);
-                return of(undefined);
-            }));
+        return from(this._client.connect())
+                .pipe(
+                    catchError(err => {
+                        console.error(`!! ${err}`);
+                        return of(undefined);
+                    }));
     }
 
     get disconnect$(): Observable<void> {
@@ -70,16 +76,28 @@ export class GridFsService {
 
     }
 
-    // downloadFile$(file: string) {
-    //     return this.connect$
-    //                .pipe(
-    //                    map(client => {
-    //                        return new GridFSBucket(client.db('edrm'));
-    //                    }),
-    //                    map(bucket => {
-    //                        return bucket.openDownloadStreamByName(file);
-    //                    }),
-    //                );
-    // }
+    downloadStream$(file: File, encoding = ''): Observable<GridFSBucketReadStream|ReadWriteStream> {
+        const stream$ = this.connect$
+                            .pipe(
+                                    map(client => {
+                                        const bucket = new GridFSBucket(client!.db('edrm'));
+                                        return bucket.openDownloadStreamByName(file.path);
+                                    })
+                            );
+
+        const fixed$ = stream$.pipe(
+                map(stream =>
+                            stream.pipe(iconv.decodeStream(file.encoding))
+                                  .pipe(iconv.encodeStream(encoding))
+                )
+        );
+
+        const convert =
+                      !!encoding &&
+                      !!file.encoding &&
+                      encoding.toUpperCase() !== file.encoding.toUpperCase();
+
+        return convert ? fixed$ : stream$;
+    }
 
 }

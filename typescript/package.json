@@ -8,14 +8,18 @@
   "scripts": {
     "rss-kafka": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/fetch-rss.ts",
     "edrm-load": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/load-files.ts",
-    "edrm-csv": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-router.ts"
+    "edrm-csv": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-router.ts",
+    "edrm-csv-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-xform.ts"
   },
   "dependencies": {
     "@akanass/rx-http-request": "^3.3.0",
     "@kafkajs/confluent-schema-registry": "^3.3.0",
     "builder-pattern": "^2.2.0",
+    "chardet": "^1.5.1",
+    "csv": "^6.2.12",
     "esm": "^3.2.25",
     "he": "^1.2.0",
+    "iconv-lite": "^0.6.3",
     "kafkajs": "^2.2.4",
     "mime-types": "^2.1.35",
     "mongodb": "^5.3.0",
@@ -28,6 +32,7 @@
   "devDependencies": {
     "@types/esm": "^3",
     "@types/he": "^1",
+    "@types/iconv-lite": "^0.0.1",
     "@types/mime-types": "^2",
     "@types/node": "^18.16.0",
     "@types/rx": "^4.1.2",

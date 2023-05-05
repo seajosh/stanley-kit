@@ -1,44 +1,14 @@
 import "reflect-metadata";
 import {FileLoader} from '../services';
-import {container} from 'tsyringe';
 
-console.warn(`safety lock!`);
-process.exit(0);
+// console.warn(`safety lock!`);
+// process.exit(0);
 
 const loader =
               new FileLoader('/Users/joshw/dev/stanley-kit/data/EDRM Public Download',
-                         '/Users/joshw/dev/stanley-kit/data/');
+                             '/Users/joshw/dev/stanley-kit/data/');
 
 loader.run();
-
-
-
-
-
-// const compactFormatter = Intl.NumberFormat('en', {notation: 'compact'});
-
-// const gridFs = new GridFsService();
-
-
-
-// loader.files$
-//       .pipe(
-//           // take(62),
-//           mergeMap(file => gridFs.uploadFile$(file), 2),
-//           catchError(ex => {
-//               console.error(`!! ${ex}`);
-//               return of('');
-//           }),
-//           finalize(() => {
-//               console.info('upload done');
-//               gridFs.disconnect$.subscribe();
-//           })
-//       )
-//       .subscribe(filePath => {
-//           console.log(filePath);
-//       });
-//
-// loader.list();
 
 
 // const downloadFile = '/Users/joshw/dev/stanley-kit/data/EDRM Public Download/Data from public websites/MinTemp_1970.zip';
@@ -57,12 +27,3 @@ loader.run();
 //                 );
 //       });
 
-
-// loader.stats$
-//       // .pipe(
-//       //     take(10)
-//       // )
-//       .subscribe(([file, stat]) => {
-//           console.log(`${file}: ${compactFormatter.format(stat.size)}`);
-//       });
-// loader.stats();

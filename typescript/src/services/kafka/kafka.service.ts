@@ -75,11 +75,10 @@ export class KafkaService {
                               error: err => console.error(`kafka publish => ${err}`)
                           });
                 });
-
     }
 
 
-    drink$<T>(topic: string, groupId: string): Subject<T> {
+    drink$<T>(topic: string, groupId: string): readonly [Consumer, Subject<T>] {
         const cons = this.consumer(groupId);
         const subj$ = new Subject<T>();
 
@@ -95,9 +94,7 @@ export class KafkaService {
                 });
         };
 
-        forkJoin([
-                     cons.connect()
-                 ])
+        from(cons.connect())
             .pipe(
                 mergeMap(() =>
                     cons.subscribe({
@@ -110,7 +107,7 @@ export class KafkaService {
                                   autoCommit: false,
                                   eachMessage: handler
                               })
-                )
+                ),
             )
             .subscribe(() => {
                 cons.seek({
@@ -120,7 +117,7 @@ export class KafkaService {
                           });
             });
 
-        return subj$;
+        return [cons, subj$] as const;
     }
 
 }

@@ -10,12 +10,11 @@ const topic = {
     sub: 'edrm-files'
 }
 
-const csv$ =
-              kafka.drink$<File>(topic.sub, 'stanley-csv')
-                   .pipe(
-                       filter(file => /^text\/csv/.test(file.contentType) ),
-                       tap(file => console.log(file) )
-                   );
+const [cons, drink$] = kafka.drink$<File>(topic.sub, 'stanley-csv');
+const csv$ = drink$.pipe(
+        filter(file => /^text\/csv/.test(file.contentType) ),
+        tap(file => console.log(file) )
+);
 
 kafka.publish(topic.pub, csv$);
 

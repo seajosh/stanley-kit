@@ -4,4 +4,5 @@ export class File {
     origin = '';
     contentType = '';
     size = 0;
+    encoding = '';
 }

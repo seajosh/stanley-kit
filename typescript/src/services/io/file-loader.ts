@@ -7,6 +7,7 @@ import {autoInjectable} from 'tsyringe';
 import {KafkaService} from '../kafka';
 import {File} from '../../models';
 import {contentType} from 'mime-types';
+import {detectFile, detectFileSync} from 'chardet';
 
 
 @autoInjectable()
@@ -49,10 +50,14 @@ export class FileLoader {
                       this.load$
                           .pipe(
                               tap(file =>
-                                      console.log(`upload complete: ${file.path}`)
+                                  console.log(`upload complete: ${file.path}`)
                               ),
                               map(file => {
                                   file.contentType = contentType(file.name) || 'application/unknown';
+                                  return file;
+                              }),
+                              map(file => {
+                                  file.encoding = detectFileSync(file.origin) || '';
                                   return file;
                               })
                           );
