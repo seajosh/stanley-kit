@@ -7,6 +7,9 @@
   "main": "./src/index.ts",
   "scripts": {
     "rss-kafka": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/fetch-rss.ts",
+
+    "kafka-init": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/kafka-init.ts",
+
     "edrm-load": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/load-files.ts",
     "edrm-csv": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-router.ts",
     "edrm-csv-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-xform.ts",
@@ -19,6 +22,7 @@
     "builder-pattern": "^2.2.0",
     "chardet": "^1.5.1",
     "csv": "^6.2.12",
+    "dotenv": "^16.0.3",
     "esm": "^3.2.25",
     "he": "^1.2.0",
     "iconv-lite": "^0.6.3",
