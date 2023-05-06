@@ -53,28 +53,26 @@ export class KafkaService {
                      this.topicSchema$(topic),
                      prod.connect()
                  ])
-                .subscribe(([schemaId]) => {
-                    items$.pipe(
-                                  mergeMap(item =>
-                                                   schemaId ? this._schemas.encode(schemaId, item)
-                                                            :of(JSON.stringify(item))
-                                  ),
-
-                                  mergeMap(datum =>
-                                                   prod.send({
-                                                                 topic: topic,
-                                                                 messages: [{value: datum}]
-                                                             })
-                                  ),
-
-                                  finalize(() => {
-                                      prod.disconnect().then();
-                                  })
-                          )
-                          .subscribe({
-                                         error: err => console.error(`kafka publish => ${err}`)
-                                     });
-                });
+            .subscribe(([schemaId]) => {
+                items$.pipe(
+                          mergeMap(item =>
+                                       schemaId ? this._schemas.encode(schemaId, item)
+                                                :of(JSON.stringify(item))
+                          ),
+                          mergeMap(datum =>
+                                       prod.send({
+                                                     topic: topic,
+                                                     messages: [{value: datum}]
+                                                 })
+                          ),
+                          finalize(() => {
+                              prod.disconnect().then();
+                          })
+                      )
+                      .subscribe({
+                                     error: err => console.error(`kafka publish => ${err}`)
+                                 });
+            });
 
         return prod;
     }
