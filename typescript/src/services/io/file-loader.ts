@@ -1,4 +1,4 @@
-import {filter, Observable, tap} from 'rxjs';
+import {filter, Observable, pipe, tap} from 'rxjs';
 import * as fs from 'fs';
 import {catchError, finalize, map, mergeMap, take} from 'rxjs/operators';
 import path from 'path';
@@ -44,6 +44,19 @@ export class FileLoader {
                    );
     }
 
+    public static detectEncoding() {
+        return pipe(
+                map((file: File) => {
+                    file.contentType = contentType(file.name) || 'application/unknown';
+                    return file;
+                }),
+                map(file => {
+                    file.encoding = detectFileSync(file.origin, {sampleSize: 64}) || '';
+                    return file;
+                })
+        );
+    }
+
 
     public run() {
         const transform$ =
@@ -52,14 +65,15 @@ export class FileLoader {
                               tap(file =>
                                   console.log(`upload complete: ${file.path}`)
                               ),
-                              map(file => {
-                                  file.contentType = contentType(file.name) || 'application/unknown';
-                                  return file;
-                              }),
-                              map(file => {
-                                  file.encoding = detectFileSync(file.origin) || '';
-                                  return file;
-                              })
+                              FileLoader.detectEncoding(),
+                              // map(file => {
+                              //     file.contentType = contentType(file.name) || 'application/unknown';
+                              //     return file;
+                              // }),
+                              // map(file => {
+                              //     file.encoding = detectFileSync(file.origin) || '';
+                              //     return file;
+                              // })
                           );
 
         this._kafka!

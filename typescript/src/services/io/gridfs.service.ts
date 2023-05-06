@@ -1,12 +1,13 @@
-import {GridFSBucket, GridFSBucketReadStream, GridFSBucketWriteStream, MongoClient, ServerApiVersion} from 'mongodb';
-import {from, iif, mergeMap, Observable, of, retry, switchMap, tap} from 'rxjs';
-import {catchError, finalize, map} from 'rxjs/operators';
+import {GridFSBucket, GridFSBucketReadStream, MongoClient, ServerApiVersion} from 'mongodb';
+import {from, Observable, of} from 'rxjs';
+import {catchError, map} from 'rxjs/operators';
 import * as fs from 'fs';
-import {File} from '../../models/edrm/file.model';
+import {File} from '../../models';
 import {Builder} from 'builder-pattern';
 import path from 'path';
-import ReadWriteStream = NodeJS.ReadWriteStream;
 import iconv from 'iconv-lite';
+import ReadWriteStream = NodeJS.ReadWriteStream;
+
 // const {decodeStream, encodeStream} = iconv;
 
 export class GridFsService {
@@ -98,6 +99,31 @@ export class GridFsService {
                       encoding.toUpperCase() !== file.encoding.toUpperCase();
 
         return convert ? fixed$ : stream$;
+    }
+
+
+    downloadFile$(file: File, target: File, encoding = ''): Observable<File> {
+        return new Observable<File>(sub$ => {
+            this.downloadStream$(file, encoding)
+                .subscribe(stream => {
+                    const write = stream.pipe(fs.createWriteStream(target.origin));
+
+                    write.on('error',
+                             err => sub$.error(err)
+                    );
+
+                    write.on('finish',
+                             () => {
+                                 const download =
+                                               Builder<File>(file).origin(target.origin)
+                                                                  .size(write.bytesWritten)
+                                                                  .build();
+                                 sub$.next(download);
+                                 sub$.complete();
+                             });
+                });
+        });
+
     }
 
 }

@@ -1,61 +1,56 @@
 import 'reflect-metadata';
-import {GridFsService, KafkaService} from '../services';
+import {DemolitionService, FileLoader, GridFsService, KafkaService, ScratchService, ZipService} from '../services';
 import {container} from 'tsyringe';
-import {File} from '../models';
-import {catchError, finalize, map, mergeAll, mergeMap, skip, take, withLatestFrom} from 'rxjs/operators';
-import {from, fromEvent, tap} from 'rxjs';
-import unzip from 'unzip-stream';
-import {Transform} from 'stream';
+import {File, Formatters} from '../models';
+import {finalize, map, mergeMap, take} from 'rxjs/operators';
+import {of, tap} from 'rxjs';
 
+
+const demo = container.resolve(DemolitionService);
+const scratch = container.resolve(ScratchService);
 const kafka = container.resolve(KafkaService);
 const gridfs = container.resolve(GridFsService);
+const zip = container.resolve(ZipService);
+const compact = Formatters.compact;
 const topic = {
     sub: 'edrm-files-zip'
 }
 
 const [cons, zip$] = kafka.drink$<File>(topic.sub, 'stanley-zip-xform');
 
-const final = () => {
-    console.info('stopping...');
-    if (cons) {
-        cons.disconnect()
-            .then(() => console.debug(`kafka ${topic.sub} consumer disconnected`));
-    }
-    // if (prod) {
-    //     prod.disconnect()
-    //         .then(() => console.debug(`kafka ${topic.pub} producer disconnected`));
-    // }
-};
+demo.register(() =>
+                  cons.disconnect()
+                      .then(() => console.debug(`kafka ${topic.sub} consumer disconnected`) )
+);
+demo.register(() =>
+                  gridfs.disconnect$
+                        .subscribe(() => console.debug(`gridfs disconnected`))
+);
 
-process.once('SIGTERM', final);
-process.once('SIGINT', final);
 
 zip$.pipe(
         take(1),
         tap(file =>
-            console.info(`zip xform => ${file.name}`)
+            console.info(`zip xform => ${file.name} (${compact.format(file.size)})`)
         ),
         mergeMap(file =>
-            gridfs.downloadStream$(file)
-                  .pipe(
-                      map(stream => [stream, file] as const)
-                  )
+            gridfs.downloadFile$(file, scratch.create(file))
         ),
-        mergeMap(([stream, file]) =>
-                 fromEvent(stream.pipe(unzip.Parse()), 'entry')
-                 // stream.pipe(unzip.Parse())
-                  // .pipe(new Transform({
-                  //                         objectMode: true,
-                  //                         transform: (entry, err, cb) => {
-                  //                             console.log(entry.path);
-                  //                             entry.autodrain();
-                  //                             cb();
-                  //                         }
-                  //                     }))
+        tap(download => {
+            console.log(`downloaded ${download.name} (${compact.format(download.size)}) @ ${download.origin}`)
+        }),
+        mergeMap(download =>
+            zip.unzip$(download)
         ),
-
-        finalize(final)
+        mergeMap(([entry, balloon]) =>
+            of(balloon).pipe(
+                    FileLoader.detectEncoding(),
+                    map(_balloon => [entry, _balloon] as const)
+            )
+        ),
+        finalize(() => demo.destroy())
     )
-    .subscribe(foo => {
-
-    });
+    .subscribe(([entry, balloon]) => {
+        // console.log(`extracted ${file.path}`);
+        console.log(balloon);
+    })
