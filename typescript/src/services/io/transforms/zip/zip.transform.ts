@@ -58,21 +58,19 @@ export class ZipTransform {
     run(topic: TopicGroup) {
         const upload$ = this.decompress$(topic)
                             .pipe(
-                                map(([file, entry]) => file),
-                                // mergeMap(file =>
-                                //     this._gridfs.uploadFile$(file.origin)
-                                // )
+                                mergeMap(([file, entry]) =>
+                                             this._gridfs.uploadFile$(file),
+                                         2
+                                ),
+                                tap(upload =>
+                                    console.info(`zip transform upload => ${upload.path} (${Formatters.compact.format(upload.size)})`)
+                                )
+
                             );
 
-        upload$.subscribe(file => console.log(file));
+        // upload$.subscribe();
 
-        // this._kafka.publish(topic.pub,
-        //                     this.decompress$(topic)
-        //                         .pipe(
-        //                             map(([file, entry]) => file)
-        //                         )
-        // );
-
+        this._kafka.publish(topic.pub, upload$);
     }
 
 }
