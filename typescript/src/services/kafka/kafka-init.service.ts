@@ -8,6 +8,7 @@ export class KafkaInitService {
     protected _topics =
                   ['edrm-files',
                    'edrm-files-csv',
+                   'edrm-files-docx',
                    'edrm-files-xml',
                    'edrm-files-zip'
                   ];

@@ -23,8 +23,6 @@ export class XmlTransform {
                                                 'stanley-xml-xform');
 
         return files$.pipe(
-            skip(2),
-            take(1),
             tap(file =>
                     console.info(`xml xform => ${file.name}`)
             ),
@@ -42,9 +40,7 @@ export class XmlTransform {
                              )
             ),
             map(([file, xml]) =>
-                    [file, new XMLParser({
-
-                                         }).parse(xml)] as const
+                    [file, new XMLParser({}).parse(xml)] as const
             ),
         );
 
