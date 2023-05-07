@@ -5,7 +5,12 @@ import {injectable} from 'tsyringe';
 
 @injectable()
 export class KafkaInitService {
-    protected _topics = ['edrm-files-xml'];
+    protected _topics =
+                  ['edrm-files',
+                   'edrm-files-csv',
+                   'edrm-files-xml',
+                   'edrm-files-zip'
+                  ];
 
     protected _fileSchema =  '../schemas/src/main/avro/edrm/file.avsc';
 
@@ -38,7 +43,6 @@ export class KafkaInitService {
         this._topics
             .filter(top => !createTopics.includes(top))
             .forEach(top => console.info(`found topic '${top}' - skipping`));
-
 
         const topicConfigs =
                   createTopics.map(top => {

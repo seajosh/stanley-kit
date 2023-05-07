@@ -6,13 +6,14 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
+    "test": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/fetch-rss.ts",
     "rss-kafka": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/fetch-rss.ts",
-
     "kafka-init": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/kafka-init.ts",
-
     "edrm-load": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/load-files.ts",
     "edrm-csv": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-router.ts",
     "edrm-csv-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-xform.ts",
+    "edrm-xml-router": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/xml-router.ts",
+    "edrm-xml-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/xml-xform.ts",
     "edrm-zip-router": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/zip-router.ts",
     "edrm-zip-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/zip-xform.ts"
   },
@@ -24,6 +25,7 @@
     "csv": "^6.2.12",
     "dotenv": "^16.0.3",
     "esm": "^3.2.25",
+    "fast-xml-parser": "^4.2.2",
     "he": "^1.2.0",
     "iconv-lite": "^0.6.3",
     "kafkajs": "^2.2.4",
@@ -32,6 +34,7 @@
     "node-stream-zip": "^1.15.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
+    "stream-to-string": "^1.2.1",
     "tsyringe": "^4.7.0",
     "vcardz": "^3.0.3"
   },

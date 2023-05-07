@@ -3,20 +3,30 @@ import {Consumer, EachMessageHandler, EachMessagePayload, Kafka, logLevel, Parti
 import {SchemaRegistry} from '@kafkajs/confluent-schema-registry';
 import {firstValueFrom, forkJoin, from, Observable, of, Subject, Subscription, tap} from 'rxjs';
 import {finalize, mergeMap} from 'rxjs/operators';
+import {ConfigService} from '../config.service';
 
 @singleton()
 export class KafkaService {
-    protected _kafka = new Kafka({
-                                     brokers: ['localhost:29092'],
-                                     logLevel: logLevel.INFO
-                                 });
 
-    protected _schemas = new SchemaRegistry({
-                                                host: 'http://localhost:28081'
-                                            });
+    protected _kafka: Kafka;
+    protected _schemas: SchemaRegistry;
 
-    public constructor() {
+    constructor(protected _config: ConfigService) {
+        const brokers =
+                  this._config
+                      .prop('kafka-brokers')
+                      .split(';');
+
+        this._kafka = new Kafka({
+                                    brokers: brokers,
+                                    logLevel: logLevel.INFO
+                                });
+
+        this._schemas = new SchemaRegistry({
+                                               host: this._config.prop('schema-host')
+                                           });
     }
+
 
     producer(): Producer {
         return this._kafka

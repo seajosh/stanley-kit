@@ -1,2 +1,2 @@
 export * from './xml.router';
-// export * from './xml.service';
+export * from './xml.transform';

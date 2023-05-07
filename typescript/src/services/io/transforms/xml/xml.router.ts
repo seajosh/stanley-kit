@@ -1,7 +1,16 @@
 import {RouterAbstract} from '../router.abstract';
 import {TopicGroup} from '../../../../models';
+import {injectable} from 'tsyringe';
+import {DemolitionService} from '../../../process';
+import {KafkaService} from '../../../kafka';
 
-export class XmlRouterService extends RouterAbstract {
+@injectable()
+export class XmlRouter extends RouterAbstract {
+
+    constructor(protected _demo: DemolitionService,
+                protected _kafka: KafkaService) {
+        super(_demo, _kafka);
+    }
 
     run(topic: TopicGroup) {
         super.execute('xml',
