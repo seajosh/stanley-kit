@@ -51,7 +51,7 @@ export class KafkaInitService {
                           numPartitions: 1,
                       } as ITopicConfig;
                   })
-        // await admin.createTopics({topics: topicConfigs});
+        await admin.createTopics({topics: topicConfigs});
         createTopics.forEach(top => console.info(`created topic ${top}`) );
 
         const fileAvro = await readAVSCAsync(this._fileSchema);

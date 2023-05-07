@@ -4,6 +4,7 @@ import {SchemaRegistry} from '@kafkajs/confluent-schema-registry';
 import {firstValueFrom, forkJoin, from, Observable, of, Subject, Subscription, tap} from 'rxjs';
 import {finalize, mergeMap} from 'rxjs/operators';
 import {ConfigService} from '../config.service';
+import {DemolitionService} from '../process';
 
 @singleton()
 export class KafkaService {
@@ -11,7 +12,8 @@ export class KafkaService {
     protected _kafka: Kafka;
     protected _schemas: SchemaRegistry;
 
-    constructor(protected _config: ConfigService) {
+    constructor(protected _config: ConfigService,
+                protected _demo: DemolitionService) {
         const brokers =
                   this._config
                       .prop('kafka-brokers')
@@ -56,8 +58,11 @@ export class KafkaService {
     }
 
 
-    publish<T>(topic: string, items$: Observable<T>): Producer {
+    publish<T>(topic: string, items$: Observable<T>) {
         const prod = this.producer();
+        this._demo.register(() =>
+            prod.disconnect().then(() => console.debug(`topic '${topic}' stopped publishing`))
+        );
 
         forkJoin([
                      this.topicSchema$(topic),
@@ -84,13 +89,16 @@ export class KafkaService {
                                  });
             });
 
-        return prod;
     }
 
 
-    drink$<T>(topic: string, groupId: string): readonly [Consumer, Subject<T>] {
+    drink$<T>(topic: string, groupId: string): Subject<T> {
         const cons = this.consumer(groupId);
-        const subj$ = new Subject<T>();
+        this._demo.register(() =>
+            cons.disconnect().then(() => console.debug(`topic '${topic}' unsubscribed`))
+        );
+
+        const sub$$ = new Subject<T>();
 
         const handler = async (payload: EachMessagePayload) => {
             of(payload)
@@ -100,7 +108,7 @@ export class KafkaService {
                     )
                 )
                 .subscribe(data => {
-                    subj$.next(data as T);
+                    sub$$.next(data as T);
                 });
         };
 
@@ -127,7 +135,7 @@ export class KafkaService {
                           });
             });
 
-        return [cons, subj$] as const;
+        return sub$$;
     }
 
 }

@@ -8,38 +8,50 @@ import {KafkaService} from '../kafka';
 import {File} from '../../models';
 import {contentType} from 'mime-types';
 import {detectFile, detectFileSync} from 'chardet';
+import {DemolitionService} from '../process';
+import {Builder} from 'builder-pattern';
 
 
 @autoInjectable()
 export class FileLoader {
     constructor(protected _root: string,
                 protected _mask = '',
-                protected _kafka?: KafkaService) {}
+                protected _kafka?: KafkaService,
+                protected _gridfs?: GridFsService) {
+    }
 
 
-    get files$(): Observable<string> {
+    get files$(): Observable<File> {
         return this.traverse$
                    .pipe(
-                       filter(([folder, entry]) => entry.isFile()),
-                       map(([folder, entry]) => path.join(folder, entry.name))
+                       filter(([folder, entry]) =>
+                                  entry.isFile()
+                       ),
+                       map(([folder, entry]) =>
+                               path.join(folder, entry.name)
+                       ),
+                       map(item =>
+                               Builder<File>().name(path.basename(item))
+                                              .origin(item)
+                                              .build()
+                       )
                    );
     }
 
 
     get load$(): Observable<File> {
-        const gridFs = new GridFsService();
-
         return this.files$
                    .pipe(
-                       mergeMap(file => gridFs.uploadFile$(file, this._mask),
+                       map(file => {
+                           file.path = this._mask ? file.origin.replace(this._mask, '$/')
+                                                  : file.origin;
+                           return file;
+                       }),
+                       mergeMap(file => this._gridfs!.uploadFile$(file),
                                 2),
                        catchError(err => {
                            console.error(`!! ${err.message}`);
                            throw err;
-                       }),
-                       finalize(() => {
-                           console.debug('load$ finalize');
-                           gridFs.disconnect$.subscribe();
                        })
                    );
     }
@@ -66,14 +78,6 @@ export class FileLoader {
                                   console.log(`upload complete: ${file.path}`)
                               ),
                               FileLoader.detectEncoding(),
-                              // map(file => {
-                              //     file.contentType = contentType(file.name) || 'application/unknown';
-                              //     return file;
-                              // }),
-                              // map(file => {
-                              //     file.encoding = detectFileSync(file.origin) || '';
-                              //     return file;
-                              // })
                           );
 
         this._kafka!

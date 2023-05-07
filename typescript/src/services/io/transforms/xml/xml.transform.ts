@@ -22,15 +22,8 @@ export class XmlTransform {
 
 
     read$(topic: TopicGroup) {
-        const [cons, files$] = this._kafka
-                                   .drink$<File>(topic.sub,
-                                                 'stanley-xml-xform');
-
-        this._demo
-            .register(() =>
-                cons.disconnect().then(() =>
-                                           `kafka '${topic.sub}' disconnected`)
-            );
+        const files$ = this._kafka.drink$<File>(topic.sub,
+                                                'stanley-xml-xform');
 
         return files$.pipe(
             skip(1),

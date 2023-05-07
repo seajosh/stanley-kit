@@ -6,10 +6,12 @@ import {File} from '../../models';
 import {Builder} from 'builder-pattern';
 import path from 'path';
 import iconv from 'iconv-lite';
+import {DemolitionService} from '../process';
+import {ConfigService} from '../config.service';
+import {injectable} from 'tsyringe';
 import ReadWriteStream = NodeJS.ReadWriteStream;
 
-// const {decodeStream, encodeStream} = iconv;
-
+@injectable()
 export class GridFsService {
     private _client =
         new MongoClient('mongodb://admin:password@localhost:37017',
@@ -23,6 +25,14 @@ export class GridFsService {
                             },
                             maxPoolSize: 10
                         });
+
+    constructor(protected _config: ConfigService,
+                protected _demo: DemolitionService) {
+        this._demo
+            .register(() =>
+                this.disconnect$.subscribe(() => console.debug(`gridfs disconnected`))
+            );
+    }
 
 
     get connect$(): Observable<MongoClient|undefined> {
@@ -38,9 +48,9 @@ export class GridFsService {
         return from(this._client.close());
     }
 
-    uploadFile$(filePath: string, mask = ''): Observable<File> {
-        const gridFsPath = mask ? filePath.replace(mask, '$/')
-                                : filePath;
+    uploadFile$(file: File): Observable<File> {
+        // const gridFsPath = mask ? filePath.replace(mask, '$/')
+        //                         : filePath;
 
         return new Observable<File>(sub$ => {
             this.connect$
@@ -50,24 +60,26 @@ export class GridFsService {
                         return;
                     }
                     const bucket = new GridFSBucket(client.db('edrm'));
-                    const file = fs.createReadStream(filePath);
-                    file.on('error', err => {
+                    const reader = fs.createReadStream(file.origin);
+                    reader.on('error', err => {
                         sub$.error(err);
                     });
 
-                    const gridfs = file.pipe(bucket.openUploadStream(gridFsPath,
-                                                                     {
-                                                                         chunkSizeBytes: 1 << 20,
-                                                                     }));
-                    gridfs.on('error', err => {
+                    const writer = reader.pipe(bucket.openUploadStream(file.path,
+                                                                       {
+                                                                           chunkSizeBytes: 1 << 20,
+                                                                       }));
+                    writer.on('error', err => {
                         sub$.error(err);
                     });
-                    gridfs.on('finish', () => {
-                        const file = Builder<File>().name(path.basename(gridfs.filename))
-                                                    .origin(filePath)
-                                                    .path(gridfs.filename)
-                                                    .size(gridfs.length)
-                                                    .build();
+                    writer.on('finish', () => {
+                        // const file = Builder<File>().name(path.basename(gridfs.filename))
+                        //                             .origin(filePath)
+                        //                             .path(gridfs.filename)
+                        //                             .size(gridfs.length)
+                        //                             .build();
+                        file.size = writer.length;
+
 
                         sub$.next(file);
                         sub$.complete();

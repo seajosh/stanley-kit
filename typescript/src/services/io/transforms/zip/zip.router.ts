@@ -1,21 +1,20 @@
-import {RouterAbstract} from '../router.abstract';
-import {TopicGroup} from '../../../../models';
 import {injectable} from 'tsyringe';
+import {RouterAbstract} from '../router.abstract';
 import {DemolitionService} from '../../../process';
 import {KafkaService} from '../../../kafka';
+import {TopicGroup} from '../../../../models';
 
 @injectable()
-export class XmlRouter extends RouterAbstract {
-
+export class ZipRouter extends RouterAbstract {
     constructor(protected _demo: DemolitionService,
                 protected _kafka: KafkaService) {
-        super(_demo, _kafka);
+        super(_demo, _kafka)
     }
 
     run(topic: TopicGroup) {
-        super.execute('xml',
+        super.execute('zip',
                       topic,
-                      file => /^(?:application|text)\/xml/.test(file.contentType)
-        )
+                      file => /^application\/zip/.test(file.contentType)
+        );
     }
 }

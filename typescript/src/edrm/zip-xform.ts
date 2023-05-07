@@ -1,16 +1,15 @@
 import 'reflect-metadata';
-import {
-    DemolitionService, FileLoader, GridFsService, KafkaService, ScratchService, ZipArchiveService, ZipService
-} from '../services';
 import {container} from 'tsyringe';
-import {File, Formatters, TopicGroup} from '../models';
-import {finalize, map, mergeMap, skip, take} from 'rxjs/operators';
-import {of, tap} from 'rxjs';
+import {ZipTransform} from '../services';
+import {TopicGroup} from '../models';
+
 
 const topic = new TopicGroup('edrm-files', 'edrm-files-zip');
-const zipArchive = container.resolve(ZipArchiveService);
+const transform = container.resolve(ZipTransform);
 // zipArchive.run(topic);
-zipArchive.decompress$(topic)
-          .subscribe(([entry, file]) =>
-                         console.log(file)
-          );
+// transform.decompress$(topic)
+//           .subscribe(([file, entry]) =>
+//                          console.log(file)
+//           );
+
+transform.run(topic)
