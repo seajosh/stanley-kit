@@ -1,19 +1,18 @@
 import {filter, Observable, pipe, tap} from 'rxjs';
 import * as fs from 'fs';
-import {catchError, finalize, map, mergeMap, take} from 'rxjs/operators';
+import {catchError, map, mergeMap} from 'rxjs/operators';
 import path from 'path';
 import {GridFsService} from './gridfs.service';
 import {autoInjectable} from 'tsyringe';
 import {KafkaService} from '../kafka';
 import {File} from '../../models';
 import {contentType} from 'mime-types';
-import {detectFile, detectFileSync} from 'chardet';
-import {DemolitionService} from '../process';
+import {detectFileSync} from 'chardet';
 import {Builder} from 'builder-pattern';
 
 
 @autoInjectable()
-export class FileLoader {
+export class FileLoaderService {
     constructor(protected _root: string,
                 protected _mask = '',
                 protected _kafka?: KafkaService,
@@ -77,7 +76,7 @@ export class FileLoader {
                               tap(file =>
                                   console.log(`upload complete: ${file.path}`)
                               ),
-                              FileLoader.detectEncoding(),
+                              FileLoaderService.detectEncoding(),
                           );
 
         this._kafka!

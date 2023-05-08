@@ -11,7 +11,7 @@ import {KafkaService} from '../../../kafka';
 import {ScratchService} from '../../scratch.service';
 import {ZipService} from '../../compression';
 import {File, Formatters, TopicGroup} from '../../../../models';
-import {FileLoader} from '../../file-loader';
+import {FileLoaderService} from '../../file-loader.service';
 
 
 @injectable()
@@ -46,7 +46,7 @@ export class ZipTransform {
             ),
             mergeMap(([entry, zipFile]) =>
                          of(zipFile).pipe(
-                             FileLoader.detectEncoding(),
+                             FileLoaderService.detectEncoding(),
                              map(zipFile => [zipFile, entry] as const)
                          )
             )

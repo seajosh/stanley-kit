@@ -5,11 +5,10 @@ import {File, TopicGroup} from '../../../../models';
 import {injectable} from 'tsyringe';
 import {filter, from, map, share, tap} from 'rxjs';
 import {mergeMap} from 'rxjs/operators';
-import {StreamsService} from '../../compression/streams.service';
 import {simpleParser} from 'mailparser';
 import {Builder} from 'builder-pattern';
 import path from 'path';
-import {charset, contentType} from 'mime-types';
+import {charset} from 'mime-types';
 import {Readable} from 'stream';
 import {ScratchService} from '../../scratch.service';
 
@@ -19,8 +18,7 @@ export class EmailTransform {
     constructor(protected _demo: DemolitionService,
                 protected _gridfs: GridFsService,
                 protected _kafka: KafkaService,
-                protected _scratch: ScratchService,
-                protected _streams: StreamsService) {
+                protected _scratch: ScratchService) {
     }
 
 
