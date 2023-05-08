@@ -49,8 +49,7 @@ export class ZipTransform {
                              FileLoader.detectEncoding(),
                              map(zipFile => [zipFile, entry] as const)
                          )
-            ),
-            finalize(() => this._demo.destroy())
+            )
         )
     }
 

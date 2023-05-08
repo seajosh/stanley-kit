@@ -10,7 +10,9 @@ export class KafkaInitService {
                    'edrm-files-csv',
                    'edrm-files-docx',
                    'edrm-files-xml',
-                   'edrm-files-zip'
+                   'edrm-files-zip',
+                   'edrm-files-mbox',
+                   'edrm-files-email'
                   ];
 
     protected _fileSchema =  '../schemas/src/main/avro/edrm/file.avsc';

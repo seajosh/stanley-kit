@@ -4,15 +4,17 @@ import {catchError, map} from 'rxjs/operators';
 import * as fs from 'fs';
 import {File} from '../../models';
 import {Builder} from 'builder-pattern';
-import path from 'path';
 import iconv from 'iconv-lite';
 import {DemolitionService} from '../process';
 import {ConfigService} from '../config.service';
-import {injectable} from 'tsyringe';
+import {singleton} from 'tsyringe';
+import {Readable} from 'stream';
 import ReadWriteStream = NodeJS.ReadWriteStream;
 
-@injectable()
+@singleton()
 export class GridFsService {
+    private _db = 'edrm';
+
     private _client =
         new MongoClient('mongodb://admin:password@localhost:37017',
                         {
@@ -48,45 +50,63 @@ export class GridFsService {
         return from(this._client.close());
     }
 
-    uploadFile$(file: File): Observable<File> {
-        // const gridFsPath = mask ? filePath.replace(mask, '$/')
-        //                         : filePath;
 
-        return new Observable<File>(sub$ => {
+    uploadStream$(file: File, reader: Readable): Observable<File> {
+        return new Observable<File>(sub$$ => {
             this.connect$
                 .subscribe(client => {
                     if (!client) {
-                        sub$.error('invalid MongoDB client');
+                        sub$$.error('invalid MongoDB client');
                         return;
                     }
-                    const bucket = new GridFSBucket(client.db('edrm'));
-                    const reader = fs.createReadStream(file.origin);
-                    reader.on('error', err => {
-                        sub$.error(err);
-                    });
+                    reader.on('error', err => sub$$.error(err) );
 
+                    const bucket = new GridFSBucket(client.db(this._db));
                     const writer = reader.pipe(bucket.openUploadStream(file.path,
                                                                        {
                                                                            chunkSizeBytes: 1 << 20,
                                                                        }));
-                    writer.on('error', err => {
-                        sub$.error(err);
-                    });
+                    writer.on('error', err => sub$$.error(err));
                     writer.on('finish', () => {
-                        // const file = Builder<File>().name(path.basename(gridfs.filename))
-                        //                             .origin(filePath)
-                        //                             .path(gridfs.filename)
-                        //                             .size(gridfs.length)
-                        //                             .build();
                         file.size = writer.length;
-
-
-                        sub$.next(file);
-                        sub$.complete();
-                    });
+                        sub$$.next(file);
+                        sub$$.complete();
+                    })
                 });
         });
+    }
 
+    uploadFile$(file: File): Observable<File> {
+        const reader = fs.createReadStream(file.origin);
+        return this.uploadStream$(file, reader);
+
+        // return new Observable<File>(sub$ => {
+        //     this.connect$
+        //         .subscribe(client => {
+        //             if (!client) {
+        //                 sub$.error('invalid MongoDB client');
+        //                 return;
+        //             }
+        //             const bucket = new GridFSBucket(client.db('edrm'));
+        //             const reader = fs.createReadStream(file.origin);
+        //             reader.on('error', err => {
+        //                 sub$.error(err);
+        //             });
+        //
+        //             const writer = reader.pipe(bucket.openUploadStream(file.path,
+        //                                                                {
+        //                                                                    chunkSizeBytes: 1 << 20,
+        //                                                                }));
+        //             writer.on('error', err => {
+        //                 sub$.error(err);
+        //             });
+        //             writer.on('finish', () => {
+        //                 file.size = writer.length;
+        //                 sub$.next(file);
+        //                 sub$.complete();
+        //             });
+        //         });
+        // });
     }
 
     downloadStream$(file: File, encoding = ''): Observable<GridFSBucketReadStream|ReadWriteStream> {
