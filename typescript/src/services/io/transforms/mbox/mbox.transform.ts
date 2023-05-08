@@ -11,6 +11,7 @@ import {Readable} from 'stream';
 import {Builder} from 'builder-pattern';
 import path from 'path';
 import * as console from 'console';
+import {StreamsService} from '../../compression/streams.service';
 
 @injectable()
 export class MboxTransform {
@@ -18,7 +19,7 @@ export class MboxTransform {
                 protected _gridfs: GridFsService,
                 protected _kafka: KafkaService,
                 protected _mbox: MboxService,
-                protected _scratch: ScratchService) {
+                protected _streams: StreamsService) {
     }
 
 
@@ -49,7 +50,7 @@ export class MboxTransform {
                             .pipe(
                                 mergeMap( ([file, email, index]) => {
                                               const name = `${index}.eml`;
-                                              const upload = Builder<File>().name(name)
+                                              const upload = Builder<File>().name(`${file.name}/${name}`)
                                                                             .path(path.join(file.path, name))
                                                                             .origin(path.join(file.origin, name))
                                                                             .contentType('message/rfc822')
@@ -57,11 +58,8 @@ export class MboxTransform {
                                                                             .encoding('UTF-8')
                                                                             .build();
 
-                                              const reader = new Readable
-                                              reader.push(email);
-                                              reader.push(null);
-
-                                              return this._gridfs.uploadStream$(upload, reader);
+                                              return this._gridfs.uploadStream$(upload,
+                                                                                this._streams.fromString(email));
                                           },
                                           2
                                 ),
