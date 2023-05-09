@@ -1,8 +1,8 @@
 import {GridFSBucket, GridFSBucketReadStream, MongoClient, ServerApiVersion} from 'mongodb';
 import {from, Observable, of} from 'rxjs';
-import {catchError, map} from 'rxjs/operators';
+import {catchError, map, mergeMap} from 'rxjs/operators';
 import * as fs from 'fs';
-import {File} from '../../models';
+import {File, Payload} from '../../models';
 import {Builder} from 'builder-pattern';
 import iconv from 'iconv-lite';
 import {DemolitionService} from '../process';
@@ -10,10 +10,13 @@ import {ConfigService} from '../config.service';
 import {singleton} from 'tsyringe';
 import {Readable} from 'stream';
 import ReadWriteStream = NodeJS.ReadWriteStream;
+import {Loggable} from '../loggable.abstract';
+import {DefaultLogger} from '../logging';
 
 @singleton()
-export class GridFsService {
+export class GridFsService extends Loggable {
     private _db = 'edrm';
+    private _dataCollection = 'payloads';
 
     private _client =
         new MongoClient('mongodb://admin:password@localhost:37017',
@@ -29,22 +32,25 @@ export class GridFsService {
                         });
 
     constructor(protected _config: ConfigService,
+                protected _logger: DefaultLogger,
                 protected _demo: DemolitionService) {
+        super(_logger);
         this._demo
             .register(() =>
-                this.disconnect$.subscribe(() => console.debug(`gridfs disconnected`))
+                this.disconnect$.subscribe(() => this._log.debug(`gridfs disconnected`))
             );
     }
 
 
-    get connect$(): Observable<MongoClient|undefined> {
+    get connect$(): Observable<MongoClient | undefined> {
         return from(this._client.connect())
-                .pipe(
-                    catchError(err => {
-                        console.error(`!! ${err}`);
-                        return of(undefined);
-                    }));
+            .pipe(
+                catchError(err => {
+                    this._log.error(`error connecting to MongoDB GridFS: ${err.message}`);
+                    return of(undefined);
+                }));
     }
+
 
     get disconnect$(): Observable<void> {
         return from(this._client.close());
@@ -79,34 +85,6 @@ export class GridFsService {
     uploadFile$(file: File): Observable<File> {
         const reader = fs.createReadStream(file.origin);
         return this.uploadStream$(file, reader);
-
-        // return new Observable<File>(sub$ => {
-        //     this.connect$
-        //         .subscribe(client => {
-        //             if (!client) {
-        //                 sub$.error('invalid MongoDB client');
-        //                 return;
-        //             }
-        //             const bucket = new GridFSBucket(client.db('edrm'));
-        //             const reader = fs.createReadStream(file.origin);
-        //             reader.on('error', err => {
-        //                 sub$.error(err);
-        //             });
-        //
-        //             const writer = reader.pipe(bucket.openUploadStream(file.path,
-        //                                                                {
-        //                                                                    chunkSizeBytes: 1 << 20,
-        //                                                                }));
-        //             writer.on('error', err => {
-        //                 sub$.error(err);
-        //             });
-        //             writer.on('finish', () => {
-        //                 file.size = writer.length;
-        //                 sub$.next(file);
-        //                 sub$.complete();
-        //             });
-        //         });
-        // });
     }
 
     downloadStream$(file: File, encoding = ''): Observable<GridFSBucketReadStream|ReadWriteStream> {
@@ -157,5 +135,44 @@ export class GridFsService {
         });
 
     }
+
+
+    upsertPayload(collection: string, payloads$: Observable<Payload>) {
+        this.connect$
+            .subscribe(client => {
+                if (!client) {
+                    throw 'invalid MongoDB client';
+                }
+                payloads$.pipe(
+                             mergeMap(payload =>
+                                          from(client.db(this._db)
+                                                     .collection(this._dataCollection)
+                                                     .updateOne({'file.path': payload.file.path},
+                                                                {$set: payload},
+                                                                {
+                                                                    upsert: true
+                                                                }
+                                                     )
+                                          ).pipe(
+                                              map(result => [payload, result] as const)
+                                          ),
+                                      8
+                             )
+                         )
+                         .subscribe( ([payload, result]) => {
+                             const docPath = `${this._db}.${this._dataCollection}.${payload.file.path}`;
+                             const stats =
+                                       [`ack: ${result.acknowledged}`,
+                                        `matched: ${result.matchedCount}`,
+                                        `modified: ${result.modifiedCount}`,
+                                        `upserted: ${result.upsertedCount}`,
+                                        `id: ${result.upsertedId}`
+                                       ].join(' ');
+
+                             this._log.info(`mongodb upsert ${docPath} => ${stats}`);
+                         });
+            });
+    }
+
 
 }

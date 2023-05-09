@@ -14,7 +14,7 @@ export class DemolitionService {
     }
 
     destroy() {
-        console.info('destroying...');
+        console.info('\ndestroying...');
         this._registry.forEach(demo => {
             demo();
         });

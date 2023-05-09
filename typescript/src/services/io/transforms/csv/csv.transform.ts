@@ -1,16 +1,22 @@
 import {GridFsService} from '../../gridfs.service';
 import {KafkaService} from '../../../kafka';
 import {injectable} from 'tsyringe';
-import {File, TopicGroup} from '../../../../models';
+import {File, Payload, TopicGroup} from '../../../../models';
 import {from, map, Observable, tap} from 'rxjs';
 import {mergeMap} from 'rxjs/operators';
 import {parse} from 'csv';
+import {Builder} from 'builder-pattern';
+import path from 'path';
+import {DefaultLogger} from '../../../logging';
+import {Loggable} from '../../../loggable.abstract';
 
 
 @injectable()
-export class CsvTransform {
+export class CsvTransform extends Loggable {
     constructor(protected _gridfs: GridFsService,
+                protected _logger: DefaultLogger,
                 protected _kafka: KafkaService) {
+        super(_logger);
     }
 
 
@@ -21,7 +27,7 @@ export class CsvTransform {
 
         return files$.pipe(
             tap(file =>
-                console.info(`csv xform => ${file.name}`)
+                this._log.info(`csv xform => ${file.name}`)
             ),
             mergeMap(file =>
                 this._gridfs
@@ -46,9 +52,40 @@ export class CsvTransform {
 
 
     run(topic: TopicGroup) {
-        this.read$(topic)
-            .subscribe( ([file, record]) => {
-                console.info(record);
-            });
+        const upsert$ =
+                  this.read$(topic)
+                      .pipe(
+                          map(([file, record]) => {
+                              const name = record[1] as string;
+                              const recordFile = Builder<File>(file).name(`${file.name}/${name}`)
+                                                                    .path(path.join(file.path, name))
+                                                                    .origin(path.join(file.origin, name))
+                                                                    .size(0)
+                                                                    .encoding('UTF-8')
+                                                                    .build();
+                              return [recordFile, record] as const;
+                          }),
+                          map(([recordFile, record]) => {
+                              // convert an array to an object
+                              const obj = [...record.keys()].map(i =>
+                                                                     [i.toString(), record[i]] as const
+                                                            )
+                                                            .reduce((target: any, [key, val]) => {
+                                                                        target[key] = val;
+                                                                        return target;
+                                                                    },
+                                                                    {});
+                              return [recordFile, obj] as const;
+                          }),
+                          map(([recordFile, obj]) =>
+                                  new Payload(recordFile, obj)
+                          ),
+                          tap(payload =>
+                                  this._log.info(`saving ${payload.file.path}...`)
+                          )
+                      );
+
+        this._gridfs.upsertPayload('payloads', upsert$);
+
     }
 }

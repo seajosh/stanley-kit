@@ -2,12 +2,16 @@ import {KafkaService} from '../../kafka';
 import {DemolitionService} from '../../process';
 import {File, TopicGroup} from '../../../models';
 import {filter, finalize, tap} from 'rxjs';
+import {DefaultLogger} from '../../logging';
+import {Loggable} from '../../loggable.abstract';
 
 export type RouterPredicate = (value: File, index: number) => boolean;
 
-export abstract class RouterAbstract {
+export abstract class RouterAbstract extends Loggable {
     protected constructor(protected _demo: DemolitionService,
+                          protected _logger: DefaultLogger,
                           protected _kafka: KafkaService) {
+        super(_logger);
     }
 
 
@@ -17,7 +21,7 @@ export abstract class RouterAbstract {
         return drink$.pipe(
             filter(criteria),
             tap(file =>
-                    console.info(`routing ${file.name}`)
+                    this._log.info(`routing ${file.name}`)
             ),
             finalize(() => this._demo.destroy())
         );

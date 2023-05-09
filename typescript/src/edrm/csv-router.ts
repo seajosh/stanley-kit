@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import {container} from 'tsyringe';
 import {TopicGroup} from '../models';
-import {CsvRouter} from '../services/io/transforms/csv';
+import {CsvRouter} from '../services';
 
 
 const topic = new TopicGroup('edrm-files-csv', 'edrm-files');

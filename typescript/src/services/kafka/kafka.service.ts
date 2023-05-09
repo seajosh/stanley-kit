@@ -1,33 +1,108 @@
 import {singleton} from 'tsyringe';
-import {Consumer, EachMessageHandler, EachMessagePayload, Kafka, logLevel, Partitioners, Producer} from 'kafkajs';
+import {Consumer, EachMessagePayload, Kafka, LogEntry, logLevel, Partitioners, Producer} from 'kafkajs';
 import {SchemaRegistry} from '@kafkajs/confluent-schema-registry';
-import {firstValueFrom, forkJoin, from, Observable, of, Subject, Subscription, tap} from 'rxjs';
+import {forkJoin, from, Observable, of, Subject} from 'rxjs';
 import {finalize, mergeMap} from 'rxjs/operators';
 import {ConfigService} from '../config.service';
 import {DemolitionService} from '../process';
+import {DefaultLogger} from '../logging';
+import {Loggable} from '../loggable.abstract';
+import {format} from 'logform';
+import {createLogger, transports} from 'winston';
+import printf = format.printf;
+import colorize = format.colorize;
+import label = format.label;
+import combine = format.combine;
+
 
 @singleton()
-export class KafkaService {
+export class KafkaService extends Loggable {
 
     protected _kafka: Kafka;
     protected _schemas: SchemaRegistry;
 
     constructor(protected _config: ConfigService,
-                protected _demo: DemolitionService) {
+                protected _demo: DemolitionService,
+                protected _logger: DefaultLogger) {
+        super(_logger);
         const brokers =
                   this._config
                       .prop('kafka-brokers')
                       .split(';');
 
+
+
+        // const logCreator = (logLevel: logLevel) => {
+        //     return (entry: LogEntry) => {
+        //         const {message, ...extra} = entry.log;
+        //         // const fixed = `${message} : groupId: ${extra['groupId']}`;
+        //         this._log.log({
+        //                           level: convertLevel(entry.level),
+        //                           message,
+        //                           extra
+        //                       });
+        //     };
+        // };
+
         this._kafka = new Kafka({
+                                    clientId: 'stanley-kafka-service',
                                     brokers: brokers,
-                                    logLevel: logLevel.INFO
+                                    logLevel: logLevel.INFO,
+                                    logCreator: this.createKafkaLogger
                                 });
 
         this._schemas = new SchemaRegistry({
                                                host: this._config.prop('schema-host')
                                            });
     }
+
+
+    private createKafkaLogger(loggerLevel: logLevel): (entry: LogEntry) => void {
+        const consoleFormat = combine(
+            label({
+                      label: 'kafkajs',
+                      message: false
+                  }),
+            colorize(),
+            printf(info => {
+                return `${info.extra.timestamp} [${info.label}] ${info.level}: ${info.message} | groupId: ${info.extra.groupId}`;
+            })
+        );
+
+        const convertLevel = (level: logLevel) => {
+            switch(level) {
+                case logLevel.WARN:
+                    return 'warn'
+                case logLevel.INFO:
+                    return 'info'
+                case logLevel.DEBUG:
+                    return 'debug'
+                case logLevel.ERROR:
+                case logLevel.NOTHING:
+                    return 'error'
+            }
+        };
+
+        const kafkaLogger =
+                  createLogger({
+                                   transports: [
+                                       new transports.Console({
+                                                                  format: consoleFormat
+                                                              }),
+                                   ]
+                               });
+
+        return (entry: LogEntry) => {
+            const {message, ...extra} = entry.log;
+            kafkaLogger.log({
+                              level: convertLevel(entry.level),
+                              message,
+                              extra
+                          });
+        };
+
+    }
+
 
 
     producer(): Producer {
@@ -53,7 +128,9 @@ export class KafkaService {
         const promise =
                       this._schemas
                           .getLatestSchemaId(`${topic}-value`)
-                          .catch(err => console.warn(`! ${topic}-value schema does not exist`));
+                          .catch(err => {
+                              this._log.warn(`${topic}-value schema does not exist`);
+                          });
         return from(promise);
     }
 
@@ -61,7 +138,7 @@ export class KafkaService {
     publish<T>(topic: string, items$: Observable<T>) {
         const prod = this.producer();
         this._demo.register(() =>
-            prod.disconnect().then(() => console.debug(`topic '${topic}' stopped publishing`))
+            prod.disconnect().then(() => this._log.debug(`topic '${topic}' stopped publishing`))
         );
 
         forkJoin([
@@ -85,7 +162,7 @@ export class KafkaService {
                           })
                       )
                       .subscribe({
-                                     error: err => console.error(`kafka publish => ${err}`)
+                                     error: err => this._log.error(`kafka publish => ${err}`)
                                  });
             });
 
@@ -95,7 +172,7 @@ export class KafkaService {
     drink$<T>(topic: string, groupId: string): Subject<T> {
         const cons = this.consumer(groupId);
         this._demo.register(() =>
-            cons.disconnect().then(() => console.debug(`topic '${topic}' unsubscribed`))
+            cons.disconnect().then(() => this._log.debug(`topic '${topic}' unsubscribed`))
         );
 
         const sub$$ = new Subject<T>();

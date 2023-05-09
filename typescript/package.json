@@ -6,7 +6,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
-    "test": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/fetch-rss.ts",
+    "all-routers": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/all-routers",
     "rss-kafka": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/fetch-rss.ts",
     "kafka-init": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/kafka-init.ts",
     "load-files": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/load-files.ts",
@@ -34,6 +34,7 @@
     "he": "^1.2.0",
     "iconv-lite": "^0.6.3",
     "kafkajs": "^2.2.4",
+    "logform": "^2.5.1",
     "mailparser": "^3.6.4",
     "mammoth": "^1.5.1",
     "mime-types": "^2.1.35",
@@ -45,6 +46,7 @@
     "stream-to-string": "^1.2.1",
     "tsyringe": "^4.7.0",
     "vcardz": "^3.0.3",
+    "winston": "^3.8.2",
     "word-extractor": "^1.0.4"
   },
   "devDependencies": {
