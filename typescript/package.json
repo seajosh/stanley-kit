@@ -14,6 +14,7 @@
     "csv-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/csv-xform.ts",
     "docx-router": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/docx-router.ts",
     "docx-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/docx-xform.ts",
+    "email-router": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/email-router.ts",
     "email-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/email-xform.ts",
     "mbox-router": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/mbox-router.ts",
     "mbox-xform": "node --no-warnings --experimental-specifier-resolution=node --loader ts-node/esm ./src/edrm/mbox-xform.ts",

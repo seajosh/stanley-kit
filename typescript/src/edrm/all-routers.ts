@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import {CsvRouter, DocxRouter, MboxRouter, XmlRouter, ZipRouter} from '../services';
+import {CsvRouter, DocxRouter, EmailRouter, MboxRouter, XmlRouter, ZipRouter} from '../services';
 import {container} from 'tsyringe';
 import {TopicGroup} from '../models';
 
@@ -11,6 +11,10 @@ const routers = [
     () => {
         const router = container.resolve(DocxRouter);
         router.run(new TopicGroup('edrm-files-docx', 'edrm-files'));
+    },
+    () => {
+        const router = container.resolve(EmailRouter);
+        router.run(new TopicGroup('edrm-files-email', 'edrm-files'));
     },
     () => {
         const router = container.resolve(MboxRouter);

@@ -1,8 +1,5 @@
-
-
-
 import {injectable} from 'tsyringe';
-import {distinct, finalize, map, mergeMap, Observable, of, tap} from 'rxjs';
+import {distinct, map, mergeMap, Observable, of, tap} from 'rxjs';
 
 import {ZipEntry} from 'node-stream-zip';
 import {DemolitionService} from '../../../process';
@@ -12,15 +9,19 @@ import {ScratchService} from '../../scratch.service';
 import {ZipService} from '../../compression';
 import {File, Formatters, TopicGroup} from '../../../../models';
 import {FileLoaderService} from '../../file-loader.service';
+import {DefaultLogger} from '../../../logging';
+import {Loggable} from '../../../loggable.abstract';
 
 
 @injectable()
-export class ZipTransform {
+export class ZipTransform extends Loggable {
     constructor(protected _demo: DemolitionService,
                 protected _gridfs: GridFsService,
+                protected _logger: DefaultLogger,
                 protected _kafka: KafkaService,
                 protected _scratch: ScratchService,
                 protected _zip: ZipService) {
+        super(_logger);
     }
 
     decompress$(topic: TopicGroup): Observable<readonly [File, ZipEntry]> {
@@ -32,14 +33,14 @@ export class ZipTransform {
         return files$.pipe(
             distinct(file => file.path),
             tap(file =>
-                    console.info(`decompress$ => ${file.name} (${compact(file.size)})`)
+                    this._log.info(`decompress$ => ${file.name} (${compact(file.size)})`)
             ),
             mergeMap(file =>
                          this._gridfs.downloadFile$(file,
                                                     this._scratch.create(file))
             ),
             tap(download =>
-                    console.info(`decompress$ download => ${download.name} (${compact(download.size)}) @ ${download.origin}`)
+                    this._log.info(`decompress$ download => ${download.name} (${compact(download.size)}) @ ${download.origin}`)
             ),
             mergeMap(download =>
                          this._zip.unzip$(download)
@@ -62,7 +63,7 @@ export class ZipTransform {
                                          2
                                 ),
                                 tap(upload =>
-                                    console.info(`zip transform upload => ${upload.path} (${Formatters.compact.format(upload.size)})`)
+                                    this._log.info(`zip transform upload => ${upload.path} (${Formatters.compact.format(upload.size)})`)
                                 )
 
                             );

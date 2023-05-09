@@ -1,4 +1,3 @@
-import {ScratchService} from '../../scratch.service';
 import {KafkaService} from '../../../kafka';
 import {GridFsService} from '../../gridfs.service';
 import {DemolitionService} from '../../../process';
@@ -7,19 +6,22 @@ import {File, TopicGroup} from '../../../../models';
 import {map, Observable, tap} from 'rxjs';
 import {mergeMap} from 'rxjs/operators';
 import {MboxService} from '../../compression';
-import {Readable} from 'stream';
 import {Builder} from 'builder-pattern';
 import path from 'path';
-import * as console from 'console';
 import {StreamsService} from '../../compression/streams.service';
+import {Loggable} from '../../../loggable.abstract';
+import {DefaultLogger} from '../../../logging';
+
 
 @injectable()
-export class MboxTransform {
+export class MboxTransform extends Loggable {
     constructor(protected _demo: DemolitionService,
                 protected _gridfs: GridFsService,
+                protected _logger: DefaultLogger,
                 protected _kafka: KafkaService,
                 protected _mbox: MboxService,
                 protected _streams: StreamsService) {
+        super(_logger);
     }
 
 
@@ -64,7 +66,7 @@ export class MboxTransform {
                                           2
                                 ),
                                 tap(file =>
-                                    console.info(`email ${file.path} uploaded`)
+                                    this._log.info(`email ${file.path} uploaded`)
                                 )
                             );
 

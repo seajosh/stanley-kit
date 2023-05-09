@@ -1,1 +1,2 @@
-export * from './email.transform'
+export * from './email.router';
+export * from './email.transform';

@@ -79,9 +79,6 @@ export class CsvTransform extends Loggable {
                           }),
                           map(([recordFile, obj]) =>
                                   new Payload(recordFile, obj)
-                          ),
-                          tap(payload =>
-                                  this._log.info(`saving ${payload.file.path}...`)
                           )
                       );
 

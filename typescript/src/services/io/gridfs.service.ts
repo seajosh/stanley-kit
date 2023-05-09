@@ -1,5 +1,5 @@
 import {GridFSBucket, GridFSBucketReadStream, MongoClient, ServerApiVersion} from 'mongodb';
-import {from, Observable, of} from 'rxjs';
+import {from, Observable, of, tap} from 'rxjs';
 import {catchError, map, mergeMap} from 'rxjs/operators';
 import * as fs from 'fs';
 import {File, Payload} from '../../models';
@@ -143,7 +143,11 @@ export class GridFsService extends Loggable {
                 if (!client) {
                     throw 'invalid MongoDB client';
                 }
+
                 payloads$.pipe(
+                             tap(payload =>
+                                     this._log.info(`saving ${payload.file.path}...`)
+                             ),
                              mergeMap(payload =>
                                           from(client.db(this._db)
                                                      .collection(this._dataCollection)
@@ -159,7 +163,7 @@ export class GridFsService extends Loggable {
                                       8
                              )
                          )
-                         .subscribe( ([payload, result]) => {
+                         .subscribe(([payload, result]) => {
                              const docPath = `${this._db}.${this._dataCollection}.${payload.file.path}`;
                              const stats =
                                        [`ack: ${result.acknowledged}`,
@@ -169,7 +173,8 @@ export class GridFsService extends Loggable {
                                         `id: ${result.upsertedId}`
                                        ].join(' ');
 
-                             this._log.info(`mongodb upsert ${docPath} => ${stats}`);
+                             this._log.debug(`mongodb upsert ${docPath} => ${stats}`);
+                             this._log.info(`saved ${payload.file.path}`);
                          });
             });
     }

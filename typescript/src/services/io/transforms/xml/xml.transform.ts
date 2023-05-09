@@ -1,20 +1,27 @@
-import {File, TopicGroup} from '../../../../models';
+import {File, Payload, TopicGroup} from '../../../../models';
 import {KafkaService} from '../../../kafka';
 import {DemolitionService} from '../../../process';
 import {GridFsService} from '../../gridfs.service';
 import {injectable} from 'tsyringe';
-import {mergeMap, skip, take} from 'rxjs/operators';
-import {finalize, from, map, Observable, tap} from 'rxjs';
+import {mergeMap} from 'rxjs/operators';
+import {from, map, Observable, tap} from 'rxjs';
 import {XMLParser} from 'fast-xml-parser';
 import streamToString from 'stream-to-string';
-// const toString = import('stream-to-string');
+import {Loggable} from '../../../loggable.abstract';
+import {DefaultLogger} from '../../../logging';
+import {StreamsService} from '../../compression/streams.service';
+import {Builder} from 'builder-pattern';
+
 
 @injectable()
-export class XmlTransform {
+export class XmlTransform extends Loggable {
 
     constructor(protected _demo: DemolitionService,
                 protected _gridfs: GridFsService,
-                protected _kafka: KafkaService) {
+                protected _logger: DefaultLogger,
+                protected _kafka: KafkaService,
+                protected _streams: StreamsService) {
+        super(_logger);
     }
 
 
@@ -24,7 +31,7 @@ export class XmlTransform {
 
         return files$.pipe(
             tap(file =>
-                    console.info(`xml xform => ${file.name}`)
+                    this._log.info(`xml xform => ${file.name}`)
             ),
             mergeMap(file =>
                          this._gridfs
@@ -34,9 +41,9 @@ export class XmlTransform {
                              )
             ),
             mergeMap(([file, stream]) =>
-                         from(streamToString(stream))
+                this._streams.toString$(stream)
                              .pipe(
-                                 map(xml => [file, xml as string] as const)
+                                 map(xml => [file, xml] as const)
                              )
             ),
             map(([file, xml]) =>
@@ -48,10 +55,26 @@ export class XmlTransform {
 
 
     run(topic: TopicGroup) {
-        this.read$(topic)
-            .subscribe( ([file, obj]) =>
-                console.info(JSON.stringify(obj))
-            )
+        const upsert$ =
+                  this.read$(topic)
+                      .pipe(
+                          map(([file, xml]) => {
+                              const clone = Builder<File>(file).size(xml.length)
+                                                               .encoding('UTF-8')
+                                                               .build();
+                              return [clone, xml] as const;
+                          }),
+                          map(([clone, xml]) =>
+                              new Payload(clone, xml)
+                          )
+                      );
+        this._gridfs.upsertPayload('payloads', upsert$);
+
+        // this.read$(topic)
+        //     .subscribe( ([file, obj]) =>
+        //         this._log.info(JSON.stringify(obj))
+        //         // console.info(JSON.stringify(obj))
+        //     )
     }
 
 }

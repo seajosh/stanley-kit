@@ -11,14 +11,18 @@ import path from 'path';
 import {charset} from 'mime-types';
 import {Readable} from 'stream';
 import {ScratchService} from '../../scratch.service';
+import {Loggable} from '../../../loggable.abstract';
+import {DefaultLogger} from '../../../logging';
 
 
 @injectable()
-export class EmailTransform {
+export class EmailTransform extends Loggable {
     constructor(protected _demo: DemolitionService,
                 protected _gridfs: GridFsService,
+                protected _logger: DefaultLogger,
                 protected _kafka: KafkaService,
                 protected _scratch: ScratchService) {
+        super(_logger);
     }
 
 
@@ -27,7 +31,7 @@ export class EmailTransform {
 
         return emails$.pipe(
             tap(file =>
-                console.info(`email ${file.name}`)
+                this._log.info(`email ${file.name}`)
             ),
             mergeMap(file =>
                 this._gridfs
@@ -53,7 +57,7 @@ export class EmailTransform {
                             );
 
         shared$.subscribe(([file, email]) =>
-                              console.info(`${file.name} => ${email.subject}`)
+                              this._log.info(`${file.name} => ${email.subject}`)
         );
 
         const attachments$ =
